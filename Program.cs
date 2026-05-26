@@ -1,5 +1,3 @@
-using MySqlConnector;
-using Dapper;
 using EcommerceAPI.Models;
 using Scalar.AspNetCore;
 using EcommerceAPI.Repositories;
@@ -9,6 +7,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddOpenApi();
 
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
+builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 
 var app = builder.Build();
 
@@ -52,6 +51,42 @@ app.MapDelete("/products/{id:int}", async (int id, IProductRepository repository
     return deleted 
         ? Results.Ok(new { message = "Product deleted successfully!" }) 
         : Results.NotFound(new { message = $"Cannot delete. Product with ID {id} was not found." });
+});
+
+app.MapGet("/categories", async (ICategoryRepository repository) =>
+{
+    var categories = await repository.GetAllAsync();
+    return Results.Ok(categories);
+});
+
+app.MapGet("/categories/{id:int}", async (int id, ICategoryRepository repository) =>
+{
+    var category = await repository.GetByIdAsync(id);
+    return category is null 
+        ? Results.NotFound(new { message = $"Category with ID {id} was not found." }) 
+        : Results.Ok(category);
+});
+
+app.MapPost("/categories", async (Category category, ICategoryRepository repository) =>
+{
+    await repository.CreateAsync(category);
+    return Results.Created($"/categories", "Category created successfully!");
+});
+
+app.MapPut("/categories/{id:int}", async (int id, Category category, ICategoryRepository repository) =>
+{
+    var updated = await repository.UpdateAsync(id, category);
+    return updated 
+        ? Results.Ok(new { message = "Category updated successfully!" }) 
+        : Results.NotFound(new { message = $"Cannot update. Category with ID {id} does not exist." });
+});
+
+app.MapDelete("/categories/{id:int}", async (int id, ICategoryRepository repository) =>
+{
+    var deleted = await repository.DeleteAsync(id);
+    return deleted 
+        ? Results.Ok(new { message = "Category deleted successfully!" }) 
+        : Results.NotFound(new { message = $"Cannot delete. Category with ID {id} was not found." });
 });
 
 app.Run();
